@@ -44,7 +44,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: base
+          name: focal-base
           path: /tmp/focal-base.tar
       - id: image_ref
         name: Image full reference

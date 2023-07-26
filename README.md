@@ -26,3 +26,13 @@
       --tag ghcr.io/beaglesinspace/pg_friisbi/supabase-extensions:0 \
       --target=extensions postgres/
     ```
+
+4. Build postgres
+
+    ```bash
+    docker buildx build \
+      --tag ghcr.io/beaglesinspace/pg_friisbi/spilo-supabase:0 \
+      --build-arg spilo_image=ghcr.io/beaglesinspace/pg_friisbi/spilo-focal:0 \
+      --build-arg supabase_extensions_image=ghcr.io/beaglesinspace/pg_friisbi/supabase-extensions:0 \
+      --target=spilo .
+    ```
