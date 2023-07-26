@@ -1,0 +1,72 @@
+---
+kind: Build
+type: container
+name: focal-python3-10
+spec:
+  targetStage: base
+  dockerfile: Dockerfile.focal-python3-10
+include:
+  - Dockerfile.focal-python3-10
+
+---
+kind: Build
+type: container
+name: spilo
+dependencies:
+  - build.focal-python3-10
+source:
+  path: spilo/postgres-appliance
+include:
+  - spilo/postgres-appliance
+spec:
+  buildArgs:
+    BASE_IMAGE: ${actions.build.focal-python3-10.outputs.deploymentImageId}
+    DEB_PG_SUPPORTED_VERSIONS: "15"
+    TIMESCALEDB: 2.11.0
+
+---
+kind: Build
+type: container
+name: supabase-extensions
+source:
+  path: postgres/
+spec:
+  targetStage: extensions
+
+---
+kind: Build
+type: container
+name: postgres
+dependencies:
+  - build.spilo
+  - build.supabase-extensions
+include:
+  - postgres/ansible
+  - postgres/migrations
+timeout: 1200 # 20 minutes
+spec:
+  buildArgs:
+    spilo_image: ${actions.build.spilo.outputs.deploymentImageId}
+    supabase_extensions_image: ${actions.build.supabase-extensions.outputs.deploymentImageId}
+
+---
+kind: Deploy
+type: helm
+name: postgres-operator
+include: []
+spec:
+  namespace: postgres-operator
+  chart:
+    url: https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.10.0.tgz
+
+---
+kind: Deploy
+type: helm
+name: postgres-operator-ui
+include: []
+dependencies:
+  - deploy.postgres-operator
+spec:
+  namespace: postgres-operator
+  chart:
+    url: https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.10.0.tgz

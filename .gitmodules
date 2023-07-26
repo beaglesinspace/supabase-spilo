@@ -1,0 +1,6 @@
+[submodule "spilo"]
+	path = spilo
+	url = https://github.com/zalando/spilo.git
+[submodule "postgres"]
+	path = postgres
+	url = https://github.com/supabase/postgres.git
