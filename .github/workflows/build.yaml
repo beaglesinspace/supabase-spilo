@@ -155,6 +155,7 @@ jobs:
           images: |
             ghcr.io/beaglesinspace/supabase-spilo/postgres
           tags: |
+            type=edge
             type=sha,enable=true
             type=schedule,pattern={{date 'YYYYMMDD-hhmmss'}}
       - id: build
