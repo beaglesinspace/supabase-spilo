@@ -30,7 +30,7 @@ jobs:
           images: |
             ghcr.io/beaglesinspace/supabase-spilo/focal-python3-10
           tags: |
-            type=sha,enable=true
+            type=edge
       - id: build
         name: Build and Push Docker Image
         uses: docker/build-push-action@v4
@@ -41,12 +41,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
-      #     outputs: type=docker,dest=/tmp/focal-base.tar
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: focal-base
-      #     path: /tmp/focal-base.tar
       - id: image_ref
         name: Image full reference
         run: |-
@@ -75,7 +69,7 @@ jobs:
           images: |
             ghcr.io/beaglesinspace/supabase-spilo/extensions
           tags: |
-            type=sha,enable=true
+            type=edge
       - id: build
         name: Build and Push Docker Image
         uses: docker/build-push-action@v4
@@ -87,12 +81,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
-      #     outputs: type=docker,dest=/tmp/extensions.tar
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: extensions
-      #     path: /tmp/extensions.tar
       - id: image_ref
         name: Image full reference
         run: |-
@@ -123,15 +111,7 @@ jobs:
           images: |
             ghcr.io/beaglesinspace/supabase-spilo/spilo-focal
           tags: |
-            type=sha,enable=true
-      # - name: Download base image
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: focal-base
-      #     path: /tmp
-      # - name: Load image from artifact
-      #   run: |-
-      #     docker load -i /tmp/focal-base.tar
+            type=edge
       - id: build
         name: Build and Push Docker Image
         uses: docker/build-push-action@v4
@@ -143,15 +123,9 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             BASE_IMAGE=${{ needs.build-base.outputs.image }}
-            DEB_PG_SUPPORTED_VERSIONS="15"
+            DEB_PG_SUPPORTED_VERSIONS=15
             TIMESCALEDB=2.11.0
           push: true
-      #     outputs: type=docker,dest=/tmp/spilo.tar
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: spilo
-      #     path: /tmp/spilo.tar
       - id: image_ref
         name: Image full reference
         run: |-
@@ -183,15 +157,6 @@ jobs:
           tags: |
             type=sha,enable=true
             type=schedule,pattern={{date 'YYYYMMDD-hhmmss'}}
-      # - name: Download images
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     path: /tmp
-      # - name: Load image from artifact
-      #   run: |-
-      #     docker load -i /tmp/spilo.tar
-      #     docker load -i /tmp/extensions.tar
-      #     docker image ls -a
       - id: build
         name: Build and Push Docker Image
         uses: docker/build-push-action@v4
