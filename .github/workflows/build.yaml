@@ -9,133 +9,8 @@ env:
   GITHUB_USER: ${{ github.actor }}
 
 jobs:
-  build-base:
-    runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.image_ref.outputs.result }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to GHCR
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ env.GITHUB_USER }}
-          password: ${{ env.GITHUB_TOKEN }}
-      - id: meta
-        name: Prepare metadata for Docker image
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ghcr.io/beaglesinspace/supabase-spilo/focal-python3-10
-          tags: |
-            type=edge
-      - id: build
-        name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: Dockerfile.focal-python3-10
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: true
-      - id: image_ref
-        name: Image full reference
-        run: |-
-          echo "result=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> "${GITHUB_OUTPUT}"
-
-  build-extensions:
-    runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.image_ref.outputs.result }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Setup Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to GHCR
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ env.GITHUB_USER }}
-          password: ${{ env.GITHUB_TOKEN }}
-      - id: meta
-        name: Prepare metadata for Docker image
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ghcr.io/beaglesinspace/supabase-spilo/extensions
-          tags: |
-            type=edge
-      - id: build
-        name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          context: ./postgres
-          target: extensions
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: true
-      - id: image_ref
-        name: Image full reference
-        run: |-
-          echo "result=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> "${GITHUB_OUTPUT}"
-
-  build-spilo:
-    runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.image_ref.outputs.result }}
-    needs:
-      - build-base
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Setup Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to GHCR
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ env.GITHUB_USER }}
-          password: ${{ env.GITHUB_TOKEN }}
-      - id: meta
-        name: Prepare metadata for Docker image
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            ghcr.io/beaglesinspace/supabase-spilo/spilo-focal
-          tags: |
-            type=edge
-      - id: build
-        name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          context: ./spilo/postgres-appliance
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            BASE_IMAGE=${{ needs.build-base.outputs.image }}
-            DEB_PG_SUPPORTED_VERSIONS=15
-            TIMESCALEDB=2.11.0
-          push: true
-      - id: image_ref
-        name: Image full reference
-        run: |-
-          echo "result=${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> "${GITHUB_OUTPUT}"
-
   build-postgres:
     runs-on: ubuntu-latest
-    needs:
-      - build-spilo
-      - build-extensions
     steps:
       - uses: actions/checkout@v3
         with:
@@ -167,8 +42,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            spilo_image=${{ needs.build-spilo.outputs.image }}
-            supabase_extensions_image=${{ needs.build-extensions.outputs.image }}
+            spilo_image=ghcr.io/beaglesinspace/supabase-spilo/spilo-focal:edge
+            supabase_extensions_image=ghcr.io/beaglesinspace/supabase-spilo/extensions:edge
           push: true
       - id: image_ref
         name: Image full reference
