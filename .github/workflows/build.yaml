@@ -40,7 +40,7 @@ jobs:
           file: Dockerfile.focal-python3-10
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/base.tar
+          outputs: type=docker,dest=/tmp/focal-base.tar
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
@@ -83,8 +83,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           context: ./postgres
           target: extensions
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           outputs: type=docker,dest=/tmp/extensions.tar
       - name: Upload artifact
         uses: actions/upload-artifact@v3
