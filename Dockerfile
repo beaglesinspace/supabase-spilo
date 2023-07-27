@@ -30,3 +30,10 @@ RUN rm /scripts/supabase/db/migrations/10000000000000_demote-postgres.sql
 RUN sed \
     -i 's/extensions.pg_stat_statements/public.pg_stat_statements/g' \
     /scripts/supabase/db/migrate.sh
+
+RUN cat <<EOF >> /scripts/post_init.sh
+# Read the password from the file
+export POSTGRES_PASSWORD=\$(cat \$PGPASSFILE | grep -v "^#" | cut -d: -f5)
+# Run the migrations
+/scripts/supabase/db/migrate.sh
+EOF
