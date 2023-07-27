@@ -16,4 +16,3 @@ helmCharts:
     repo: https://github.com/zalando/postgres-operator/tree/04f18b9716153a664b564f7fc04fbb264617492d/charts/postgres-operator
     version: "*"
     includeCRDs: true
-    valuesInline:

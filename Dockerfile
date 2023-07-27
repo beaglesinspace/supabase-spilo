@@ -17,15 +17,16 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends $extensions ca-certificates && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
-#     for ext in $allowed_extensions; do \
-#         apt-get install -y --no-install-recommends /tmp/${ext}*.deb; \
-#     done && \
-#     # Needed for anything using libcurl
-#     # https://github.com/supabase/postgres/issues/573
-#     apt-get install -y --no-install-recommends ca-certificates \
-#     && rm -rf /var/lib/apt/lists/* /tmp/*
-
 COPY --chown=postgres:postgres ${supabase_custom}/postgresql_extension_custom_scripts/postgres_fdw /scripts/postgres_fdw
 COPY --chown=postgres:postgres ${supabase_custom}/postgresql_extension_custom_scripts/pgsodium /scripts/pgsodium
 COPY --chown=postgres:postgres ${supabase_custom}/pgsodium_getkey_urandom.sh.j2 /usr/lib/postgresql/${postgresql_major}/bin/pgsodium_getkey.sh
-COPY --chown=postgres:postgres ${supabase_src_dir}/migrations /scripts/migrations
+COPY --chown=postgres:postgres ${supabase_src_dir}/migrations /scripts/supabase
+
+# DO not demote postgres user at the moment
+# TODO: 
+# - check if we can use supabase_admin for our dba
+# - check if it won't break patroni/spilo ops
+RUN rm /scripts/supabase/db/migrations/10000000000000_demote-postgres.sql
+RUN sed \
+    -i 's/extensions.pg_stat_statements/public.pg_stat_statements/g' \
+    /scripts/supabase/db/migrate.sh
