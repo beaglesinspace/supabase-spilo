@@ -1,0 +1,72 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: acid-supabase
+spec:
+  teamId: acid
+  dockerImage: ghcr.io/beaglesinspace/pg_friisbi/spilo-supabase:11
+  numberOfInstances: 1
+
+  postgresql:
+    version: "15"
+    parameters:
+      shared_preload_libraries: "bg_mon,pg_stat_statements,pgextwlist,pg_auth_mon,pgaudit,pgsodium,pg_net,pg_cron,pg_mon,set_user,pg_stat_kcache,timescaledb"
+      pgsodium.getkey_script: "/usr/lib/postgresql/15/bin/pgsodium_getkey.sh"
+      pgaudit.log: "ddl"
+      row_security: "on"
+      wal_level: logical
+      max_wal_senders: "10"
+      max_replication_slots: "5"
+      log_connections: "on"
+      statement_timeout: "120000"
+      jit: "off"
+
+  preparedDatabases:
+    supabase:
+      defaultUsers: true
+      schemas:
+        public: {}
+        extensions: {}
+      extensions:
+        pgaudit: extensions
+        pg_net: extensions
+
+  volume:
+    size: 1Gi
+
+  spiloFSGroup: 108
+  tls:
+    secretName: ""
+
+  patroni:
+    initdb:
+      encoding: "UTF8"
+      locale: "en_US.UTF-8"
+      data-checksums: "true"
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    synchronous_mode: false
+    synchronous_mode_strict: false
+    maximum_lag_on_failover: 33554432
+    pg_hba:
+      - local     all          all                        trust
+      - hostssl   all          +zalandos 127.0.0.1/32     pam
+      - host      all          all       127.0.0.1/32     md5
+      - hostssl   all          +zalandos ::1/128          pam
+      - host      all          all       ::1/128          md5
+      - local     replication  standby                    trust
+      - hostssl   replication  standby   all              md5
+      - hostnossl all          all       10.0.0.0/8       md5
+      - hostnossl all          all       all              reject
+      - hostssl   all          +zalandos all              pam
+      - hostssl   all          all       all              md5
+      - hostssl   all          +pamrole  all              pam
+
+  additionalVolumes:
+    - name: pgsodium-root-key
+      mountPath: /etc/postgresql-custom/pgsodium_root.key
+      subPath: pgsodium_root.key
+      volumeSource:
+        secret:
+          secretName: pgsodium-root-key
