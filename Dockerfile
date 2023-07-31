@@ -32,3 +32,6 @@ COPY --chown=postgres:postgres ${supabase_src_dir}/migrations /scripts/supabase
 # - check if we can use supabase_admin for our dba
 # - check if it won't break patroni/spilo ops
 RUN rm /scripts/supabase/db/migrations/10000000000000_demote-postgres.sql
+RUN sed \
+    -i 's/extensions.pg_stat_statements/public.pg_stat_statements/g' \
+    /scripts/supabase/db/migrate.sh
