@@ -1,0 +1,33 @@
+FROM amacneil/dbmate:2 as migrations
+
+ARG supabase_src_dir=./postgres
+
+COPY --chown=postgres:postgres ${supabase_src_dir}/migrations/db /supabase
+COPY --chown=postgres:postgres ${supabase_src_dir}/docker/all-in-one/etc/postgresql.schema.sql /etc/postgresql.schema.sql
+
+ENV USE_DBMATE=true
+
+# DO not demote postgres user at the moment
+# TODO: 
+# - check if we can use supabase_admin for our dba
+# - check if it won't break patroni/spilo ops
+RUN rm /supabase/migrations/10000000000000_demote-postgres.sql
+RUN sed -i \
+    -e 's|extensions.pg_stat_statements|public.pg_stat_statements|g' \
+    -e 's|connect=\(.*\)|connect=\${CONNECT_OVERRIDE:-\1}|g' \
+    -e 's|postinit=\(.*\)|postinit=\${POSTINIT_OVERRIDE:-\1}|g' \
+    /supabase/migrate.sh
+RUN sed -i \
+    -e '/pgbouncer/d' \
+    /etc/postgresql.schema.sql
+
+ENTRYPOINT [ "/supabase/migrate.sh" ]
+
+# sidecar image, intended to be used as a sidecar for the main postgres image
+FROM migrations as migrations-sidecar
+
+RUN cat <<-EOF >> /supabase/migrate.sh
+    while true; do
+      sleep infinity
+    done
+EOF

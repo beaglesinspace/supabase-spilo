@@ -1,0 +1,5 @@
+images:
+  - path: spec/dockerImage
+    kind: postgresql
+  - path: spec/sidecars/image
+    kind: postgresql

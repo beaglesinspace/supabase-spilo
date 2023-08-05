@@ -4,26 +4,32 @@ metadata:
   name: acid-supabase
 spec:
   teamId: acid
-  dockerImage: ghcr.io/beaglesinspace/pg_friisbi/spilo-supabase:11
+  dockerImage: ghcr.io/beaglesinspace/spilo-supabase/postgres:0
   numberOfInstances: 1
 
   postgresql:
     version: "15"
     parameters:
       shared_preload_libraries: "bg_mon,pg_stat_statements,pgextwlist,pg_auth_mon,pgaudit,pgsodium,pg_net,pg_cron,pg_mon,set_user,pg_stat_kcache,timescaledb"
-      pgsodium.getkey_script: "/usr/lib/postgresql/15/bin/pgsodium_getkey.sh"
-      pgaudit.log: "ddl"
       row_security: "on"
       wal_level: logical
       max_wal_senders: "10"
       max_replication_slots: "5"
-      log_connections: "on"
       statement_timeout: "120000"
+      log_connections: "on"
+      log_min_messages: "fatal"
+      pgsodium.getkey_script: "/usr/lib/postgresql/15/bin/pgsodium_getkey.sh"
+      pgaudit.log: "ddl"
       jit: "off"
+
+  # users:
+  #   supabase_owner_user:
+  #     - superuser
+  #     - createdb
 
   preparedDatabases:
     supabase:
-      defaultUsers: true
+      defaultUsers: false
       schemas:
         public: {}
         extensions: {}
@@ -70,3 +76,11 @@ spec:
       volumeSource:
         secret:
           secretName: pgsodium-root-key
+
+  # sidecars:
+  #   - name: migrations
+  #     image:
+  #     imagePullPolicy: Always
+  #     env:
+  #       - name: CONNECT_OVERRIDE
+  #         value: "@/supabase"

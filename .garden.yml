@@ -41,6 +41,7 @@ dependencies:
   - build.spilo
   - build.supabase-extensions
 include:
+  - Dockerfile
   - postgres/ansible
   - postgres/migrations
 timeout: 1200 # 20 minutes
@@ -48,6 +49,104 @@ spec:
   buildArgs:
     spilo_image: ${actions.build.spilo.outputs.deploymentImageId}
     supabase_extensions_image: ${actions.build.supabase-extensions.outputs.deploymentImageId}
+
+---
+kind: Build
+type: container
+name: migrations
+include:
+  - Dockerfile.migrations
+  - postgres/migrations
+  - postgres/docker/all-in-one/etc
+spec:
+  dockerfile: Dockerfile.migrations
+  targetStage: migrations
+
+---
+kind: Build
+type: exec
+name: manifests
+include:
+  - manifests
+variables:
+  postgres:
+    image: ${actions.build.postgres.outputs.deploymentImageName}
+    tag: ${slice(split(actions.build.postgres.outputs.deploymentImageId, ":"), 1)}
+  migrations:
+    image: ${actions.build.migrations.outputs.deploymentImageName}
+    tag: ${slice(split(actions.build.migrations.outputs.deploymentImageId, ":"), 1)}
+spec:
+  command:
+    - bash
+    - -c
+    - |-
+      set -ex
+      cat <<-'EOF' >kustomization.yaml
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      resources:
+        - manifests
+      namespace: ${environment.namespace}
+      images:
+        - name: ghcr.io/beaglesinspace/spilo-supabase/postgres
+          newName: ${var.postgres.image}
+          newTag: ${var.postgres.tag}
+        - name: ghcr.io/beaglesinspace/spilo-supabase/migrations
+          newName: ${var.migrations.image}
+          newTag: ${var.migrations.tag}
+      EOF
+
+---
+kind: Deploy
+type: exec
+name: migrations
+build: migrations
+spec:
+  deployCommand:
+    - k3d
+    - image
+    - import
+    - ${actions.build.migrations.outputs.deploymentImageId}
+    - -m
+    - direct
+
+---
+kind: Deploy
+type: exec
+name: postgres
+build: postgres
+spec:
+  deployCommand:
+    - k3d
+    - image
+    - import
+    - ${actions.build.postgres.outputs.deploymentImageId}
+    - -m
+    - direct
+
+---
+kind: Deploy
+type: exec
+name: db
+include: []
+dependencies:
+  - deploy.postgres
+  - deploy.migrations
+  - deploy.postgres-operator
+build: manifests
+spec:
+  deployCommand:
+    - bash
+    - -c
+    - |-
+      set -ex pipefail
+      kustomize build ${actions.build.manifests.buildPath} | kubectl apply -n ${environment.namespace} -f -
+  cleanupCommand:
+    - bash
+    - -c
+    - |-
+      set -ex pipefail
+      kustomize build ${actions.build.manifests.buildPath} | kubectl delete -n ${environment.namespace} -f -
 
 ---
 kind: Deploy
@@ -58,6 +157,9 @@ spec:
   namespace: postgres-operator
   chart:
     url: https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator/postgres-operator-1.10.0.tgz
+  values:
+    configKubernetes:
+      share_pgsocket_with_sidecars: true
 
 ---
 kind: Deploy
@@ -70,3 +172,6 @@ spec:
   namespace: postgres-operator
   chart:
     url: https://github.com/zalando/postgres-operator/raw/master/charts/postgres-operator-ui/postgres-operator-ui-1.10.0.tgz
+  values:
+    envs:
+      targetNamespace: postgres-operator

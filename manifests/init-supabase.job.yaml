@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-supabase
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata: {}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - image: ghcr.io/beaglesinspace/spilo-supabase/migrations:edge
+          name: init-supabase
+          env:
+            - name: PGHOST
+              value: acid-supabase
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres.acid-supabase.credentials.postgresql.acid.zalan.do
+                  key: password
+            - name: PGDATABASE
+              value: supabase
+          command:
+            - sh
+          args:
+            - -c
+            - |-
+              set -ex
+
+              until pg_isready; do
+                echo "Waiting for supabase database named [${PGDATABASE}] to be ready..."
+                sleep 2
+              done
+              echo "DB is ready!"
+
+              # apply init scripts as postgres user
+              export DATABASE_URL=postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE
+              DBMATE_MIGRATIONS_DIR=/supabase/init-scripts /supabase/migrate.sh --no-dump-schema migrate
+              # apply migrations
+              DBMATE_MIGRATIONS_DIR=/supabase/migrations /supabase/migrate.sh --no-dump-schema migrate
+
+              export POSTGRES_PASSWORD=$PGPASSWORD
+              psql -v ON_ERROR_STOP=1 -f /etc/postgresql.schema.sql
+              psql -v ON_ERROR_STOP=1 -c 'SELECT public.pg_stat_statements_reset(); SELECT pg_stat_reset();'

@@ -4,3 +4,7 @@ kind: Kustomization
 resources:
   - postgresql.yaml
   - pgsodium-root-key.yaml
+  - init-supabase.job.yaml
+
+configurations:
+  - kustomize.configuration.yaml

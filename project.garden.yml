@@ -12,12 +12,16 @@ name: supabase-spilo
 environments:
   - # The name of the environment.
     name: default
+    defaultNamespace: supabase-spilo
 
 # A list of providers that should be used for this project, and their configuration. Please refer to individual
 # plugins/providers for details on how to configure them.
 providers:
   - # The name of the provider plugin to use.
     name: local-kubernetes
+    context: k3d-k3s-default
+    setupIngressController: false
+    namespace: ${environment.namespace}
 
 scan:
   include:
