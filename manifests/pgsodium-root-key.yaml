@@ -1,10 +1,6 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  annotations:
-    friisbi.space/owner: demofriisbi@gmail.com
-    friisbi.space/owner-id: 00000000-0000-0000-0000-000000000000
-    friisbi.space/stack-name: friisbi/space/demo
   name: pgsodium-root-key
 data:
   pgsodium_root.key: NWQ3OTdhNTM3NzYxMjkzMjQ2MzU1Yjc5NDgyNjMwNDM3NjRlNDk1MTJiNGI3MTdkNTk3OTM4NzE1MTJhMzE0Yg==
